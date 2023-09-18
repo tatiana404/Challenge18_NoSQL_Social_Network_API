@@ -1,47 +1,20 @@
 const { ObjectId } = require('mongoose').Types;
 const { User, Thought } = require('../models');
 
-// Aggregate function to get the number of users overall
-const friendCount = async () => {
-  const numberOfUsers = await User.aggregate()
-    .count('userCount');
-  return numberOfUsers;
-}
-
-// Aggregate function for getting the overall grade using $avg
-const grade = async (userId) =>
-  User.aggregate([
-    // only include the given student by using $match
-    { $match: { _id: new ObjectId(userId) } },
-    {
-      $unwind: '$reactions',
-    },
-    {
-      $group: {
-        _id: new ObjectId(userId),
-        overallGrade: { $avg: '$reactions.score' },
-      },
-    },
-  ]);
 
 module.exports = {
-  // Get all users
+ 
   async getUsers(req, res) {
     try {
       const users = await User.find();
 
-      const userObj = {
-        users,
-        friendCount: await friendCount(),
-      };
-
-      res.json(userObj);
+      res.json(users);
     } catch (err) {
       console.log(err);
       return res.status(500).json(err);
     }
   },
-  // Get a single user
+ 
   async getSingleUser(req, res) {
     try {
       const user = await User.findOne({ _id: req.params.userId })
@@ -51,16 +24,13 @@ module.exports = {
         return res.status(404).json({ message: 'No user with that ID' })
       }
 
-      res.json({
-        user,
-        grade: await grade(req.params.usertId),
-      });
+      res.json(user);
     } catch (err) {
       console.log(err);
       return res.status(500).json(err);
     }
   },
-  // create a new user
+
   async createUser(req, res) {
     try {
       const user = await User.create(req.body);
@@ -69,7 +39,7 @@ module.exports = {
       res.status(500).json(err);
     }
   },
-  // Delete a user and remove them from the thought
+  
   async deleteUser(req, res) {
     try {
       const user = await User.findOneAndRemove({ _id: req.params.userId });
@@ -97,42 +67,16 @@ module.exports = {
     }
   },
 
-  // Add an reaction to a user
-  async addReaction(req, res) {
-    console.log('You are adding an reaction');
-    console.log(req.body);
-
-    try {
-      const user = await User.findOneAndUpdate(
-        { _id: req.params.usertId },
-        { $addToSet: { reactions: req.body } },
-        { runValidators: true, new: true }
-      );
-
-      if (!user) {
-        return res
-          .status(404)
-          .json({ message: 'No user found with that ID :(' });
-      }
-
-      res.json(user);
-    } catch (err) {
-      res.status(500).json(err);
-    }
-  },
-  // Remove reaction from a user
-  async removeReaction(req, res) {
+  async updateUser(req, res) {
     try {
       const user = await User.findOneAndUpdate(
         { _id: req.params.userId },
-        { $pull: { reaction: { reactionId: req.params.reactionId } } },
+        { $set: req.body },
         { runValidators: true, new: true }
       );
 
       if (!user) {
-        return res
-          .status(404)
-          .json({ message: 'No user found with that ID :(' });
+        res.status(404).json({ message: 'No thought with this id!' });
       }
 
       res.json(user);
@@ -140,4 +84,43 @@ module.exports = {
       res.status(500).json(err);
     }
   },
+
+  async addFriend(req, res) {
+    try {
+      const friends = await User.findOneAndUpdate(
+        { _id: req.params.userId },
+        { $addToSet: {friends:req.params.friendId}},
+        { runValidators: true, new: true }
+      );
+
+      if (!friends) {
+        res.status(404).json({ message: 'No reaction with this thoughts!' });
+      }
+
+      res.json(friends);
+    } catch (err) {
+      console.log(err),
+      res.status(500).json(err);
+    }
+  },
+
+  async removeFriend(req, res) {
+    try {
+      const friends = await User.findOneAndUpdate(
+        { _id: req.params.userId },
+        { $pull: {friends:req.params.friendId}},
+        { runValidators: true, new: true }
+      );
+
+      if (!friends) {
+        res.status(404).json({ message: 'No reaction with this thoughts!' });
+      }
+
+      res.json(friends);
+    } catch (err) {
+      console.log(err),
+      res.status(500).json(err);
+    }
+  },
+
 };

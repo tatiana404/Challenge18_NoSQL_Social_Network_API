@@ -7,12 +7,11 @@ const userSchema = new Schema(
     username: {
       type: String,
       required: true,
-      max_length: 50,
+      maxlength: 50,
     },
     email: {
       type: String,
       required: true,
-      required: "Username is Required",
       match: [/.+@.+\..+/],
     },
 
@@ -39,10 +38,9 @@ const userSchema = new Schema(
   }
 );
 
-
-// UserSchema.virtual('friendCount').get(function () {
-//   return this.friends.length;
-// });
+userSchema.virtual('friendCount').get(function () {
+  return this.friends.length;
+});
 
 const User = model('user', userSchema);
 
